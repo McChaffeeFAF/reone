@@ -23,6 +23,7 @@
 #include "reone/game/action/attackobject.h"
 #include "reone/game/action/closedoor.h"
 #include "reone/game/action/docommand.h"
+#include "reone/game/action/movetoobject.h"
 #include "reone/game/action/movetopoint.h"
 #include "reone/game/action/opendoor.h"
 #include "reone/game/action/startconversation.h"
@@ -4972,6 +4973,36 @@ TEST(CreatureBlockedByDoor, should_ignore_obstructions_that_are_not_doors) {
 
     EXPECT_EQ(glm::vec3(0.0f), npc->position());
     EXPECT_EQ(0, fixture.scriptRuns("k_def_blocked01"));
+}
+
+// An area with no walkmesh has no path to anywhere. Walks toward objects give
+// up on it, rather than planning again every frame and holding the creature's
+// queue for good.
+TEST(CreatureNavigationFailure, a_move_to_an_object_no_path_reaches_gives_up) {
+    BlockedDoorFixture fixture;
+    auto npc = fixture.addCreature("k_def_blocked01");
+    auto target = fixture.addCreature("k_def_blocked01");
+    target->setPosition(kFarDestination);
+
+    auto action = fixture.game.newAction<MoveToObjectAction>(target, true, 1.0f);
+    npc->addAction(action);
+    action->execute(action, *npc, 0.1f);
+
+    EXPECT_TRUE(npc->navigationFailed());
+    EXPECT_TRUE(action->isCompleted());
+}
+
+TEST(CreatureNavigationFailure, an_open_door_order_no_path_reaches_gives_up) {
+    BlockedDoorFixture fixture;
+    auto npc = fixture.addCreature("k_def_blocked01");
+    fixture.door->setPosition(kFarDestination);
+
+    auto action = fixture.game.newAction<OpenDoorAction>(fixture.door);
+    npc->addAction(action);
+    action->execute(action, *npc, 0.1f);
+
+    EXPECT_TRUE(npc->navigationFailed());
+    EXPECT_TRUE(action->isCompleted());
 }
 
 // Invoke GetBlockingDoor as the given caller.
