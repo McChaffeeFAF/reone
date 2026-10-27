@@ -152,3 +152,10 @@ TEST(GetSubString, takes_its_arguments_in_order_through_the_virtual_machine) {
 
     EXPECT_EQ(1, script::VirtualMachine(program, std::move(execution)).run());
 }
+
+TEST(KeyTokens, tutorial_strings_name_keys_by_binding) {
+    StringRoutineFixture fixture(GameID::KotOR);
+
+    EXPECT_EQ("Press A or D to steer", fixture.game.substituteCustomTokens("Press <MGActionLeft> or <MGActionRight> to steer"));
+    EXPECT_EQ("W S", fixture.game.substituteCustomTokens("<ActionUp> <ActionDown>"));
+}
