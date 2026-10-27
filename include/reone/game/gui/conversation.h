@@ -134,6 +134,10 @@ private:
     std::shared_ptr<audio::AudioSource> _currentVoice;
     Timer _endEntryTimer;
     float _entryDuration {0.0f};
+    // The entry started inside the world step of a frame, before that frame's
+    // screen update: its timer and end check wait for the next frame, after its
+    // script's queued actions (ActionPauseConversation) have run once.
+    bool _entryEndDeferred {false};
     std::vector<const resource::Dialog::EntryReply *> _replies;
     bool _autoPickFirstReply {false};
     /** Whether the conversation has shown the entry it ends on. */

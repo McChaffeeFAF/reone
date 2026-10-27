@@ -696,6 +696,7 @@ void Conversation::scheduleEndOfEntry() {
     _entryEnded = false;
     _entryDuration = duration;
     _endEntryTimer.reset(duration);
+    _entryEndDeferred = _game.conversationStepPending();
 }
 
 // A reply as listed and logged: its tokens resolved and, in TSL, its leading
@@ -953,6 +954,14 @@ void Conversation::update(float dt) {
     }
     GameGUI::update(dt);
     if (!_entryEnded) {
+        if (_entryEndDeferred) {
+            // Started earlier in this frame: the entry has existed for no time
+            // yet, and its participants' queued actions have not run. A Delay 0
+            // entry whose script queues ActionPauseConversation must be held,
+            // not ended, by it.
+            _entryEndDeferred = false;
+            return;
+        }
         _endEntryTimer.update(dt);
         if (!_paused && (_endEntryTimer.elapsed() || (_currentVoice && !_currentVoice->isPlaying()))) {
             endCurrentEntry();

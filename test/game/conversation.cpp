@@ -317,6 +317,66 @@ TEST_F(ConversationTest, game_pause_and_resume_control_an_active_conversation) {
     EXPECT_FALSE(_conversation->isPaused());
 }
 
+// An entry that starts inside a frame's world step, from an action, a delayed
+// command or a door script, does not end in that frame: its participants'
+// queued actions have not run yet. A Delay 0 entry whose script queues
+// ActionPauseConversation is held by it, not ended.
+
+TEST_F(ConversationTest, an_entry_started_in_the_world_step_does_not_end_in_that_frame) {
+    TestGameModule::setConversationStepPending(*_game, true);
+    startSilent(0);
+    TestGameModule::setConversationStepPending(*_game, false);
+
+    _conversation->update(0.1f); // the same frame's screen update
+    EXPECT_EQ("first", _conversation->currentText());
+    EXPECT_EQ(0, _conversation->entryEndCount());
+
+    _conversation->update(0.1f); // the next frame
+    EXPECT_EQ("second", _conversation->currentText());
+    EXPECT_EQ(1, _conversation->entryEndCount());
+}
+
+TEST_F(ConversationTest, a_pause_queued_by_a_delay_0_entry_holds_that_entry) {
+    TestGameModule::setConversationStepPending(*_game, true);
+    startSilent(0);
+    TestGameModule::setConversationStepPending(*_game, false);
+    _conversation->update(0.1f);
+
+    // Next frame: the speaker's queued ActionPauseConversation runs in the
+    // world step, before the screen update looks at the timer.
+    _conversation->pause();
+    for (int i = 0; i < 60; ++i) {
+        _conversation->update(0.1f);
+    }
+    EXPECT_EQ("first", _conversation->currentText());
+    EXPECT_EQ(0, _conversation->entryEndCount());
+
+    _conversation->resume();
+    _conversation->update(0.1f);
+    EXPECT_EQ("second", _conversation->currentText());
+    EXPECT_EQ(1, _conversation->entryEndCount());
+}
+
+TEST_F(ConversationTest, an_entry_started_outside_the_world_step_keeps_its_timing) {
+    // Started by a click: nothing is deferred.
+    startSilent(0);
+    _conversation->update(0.1f);
+    EXPECT_EQ("second", _conversation->currentText());
+}
+
+TEST_F(ConversationTest, the_deferred_frame_does_not_count_towards_the_entry_s_delay) {
+    TestGameModule::setConversationStepPending(*_game, true);
+    startSilent(1);
+    TestGameModule::setConversationStepPending(*_game, false);
+
+    _conversation->update(0.5f); // deferred: the entry has existed for no time
+    _conversation->update(0.6f);
+    EXPECT_EQ("first", _conversation->currentText());
+    _conversation->update(0.4f);
+    EXPECT_EQ("second", _conversation->currentText());
+    EXPECT_EQ(1, _conversation->entryEndCount());
+}
+
 TEST_F(ConversationTest, silent_entry_timer_expiry_does_not_advance_while_paused) {
     startSilent();
     _conversation->pause();
@@ -745,3 +805,7 @@ TEST_F(ConversationTest, bark_consumes_hold_even_when_script_lock_rejects_reveal
 }
 
 } // namespace
+
+void reone::game::TestGameModule::setConversationStepPending(Game &game, bool pending) {
+    game._conversationStepPending = pending;
+}

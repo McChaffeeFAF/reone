@@ -264,6 +264,8 @@ public:
         std::function<void(const std::string &, uint32_t)> continuation);
     static void setCurrentScreen(Game &game, int screen);
     static void setConversation(Game &game, Conversation *conversation);
+    /** As Game::update does between its start and its screen update. */
+    static void setConversationStepPending(Game &game, bool pending);
     static void setDialogGUI(Game &game, std::unique_ptr<DialogGUI> dialog);
     static void raiseTimingDiscontinuity(Game &game);
     static void initConsole(Game &game);

@@ -965,6 +965,13 @@ void Game::update(float frameTime) {
     }
     updateMusic();
 
+    // Cleared before the screen update, and on every way out of the frame.
+    struct ConversationStepScope {
+        bool &pending;
+        ~ConversationStepScope() { pending = false; }
+    } conversationStepScope {_conversationStepPending};
+    _conversationStepPending = true;
+
     // Requests made by scripts, console handlers or UI code in the previous
     // update execute only after those call stacks have unwound. This precedes
     // deferred module transition handling, so save+transition in one script
@@ -1155,6 +1162,7 @@ void Game::update(float frameTime) {
     }
     syncClientCombatMode();
     commitTutorialWindow();
+    _conversationStepPending = false;
     auto gui = getScreenGUI();
     if (gui) {
         gui->update(dt);

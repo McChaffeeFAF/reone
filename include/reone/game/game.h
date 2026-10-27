@@ -247,6 +247,13 @@ public:
 
     bool handle(const input::Event &event);
     void update(float frameTime);
+    /**
+     * The world (actions, delayed commands, combat) is being stepped and the
+     * frame has not reached its screen update yet. A dialog entry that starts
+     * now has not had its participants' queued actions run once, so its end
+     * waits for the next frame.
+     */
+    bool conversationStepPending() const { return _conversationStepPending; }
     void render();
 
     /**
@@ -1633,6 +1640,7 @@ private:
     CameraType _cameraType {CameraType::ThirdPerson};
     CameraType _savedCameraType {CameraType::ThirdPerson};
     bool _paused {false};
+    bool _conversationStepPending {false};
     int _motionBlurPrograms {0};
     bool _autoPaused {false};
     PauseReason _pauseReason {PauseReason::Other};
