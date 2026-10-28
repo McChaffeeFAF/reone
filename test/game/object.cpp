@@ -7280,6 +7280,31 @@ TEST_P(GlobalFadeAdmission, direct_runtime_retirement_releases_only_the_old_admi
     EXPECT_FALSE(game.globalFade().heldForDialog());
 }
 
+// An entry script may clear the actions of the one who started the
+// conversation while the start is still executing: K1 end_trask01 entry 44
+// runs k_pend_unready, whose CancelCombat on the player character clears its
+// actions. The conversation it started keeps its admission, runs on and ends
+// normally.
+TEST_P(GlobalFadeAdmission, entry_script_clearing_the_starter_keeps_the_conversation) {
+    auto &game = fixture->game;
+    dialog->entries[0].script = "fade_clear_starter";
+    EXPECT_CALL(fixture->engine.resourceModule().scripts(), get("fade_clear_starter"))
+        .WillOnce(Invoke([&](const std::string &) {
+            leader->clearAllActions();
+            return makeInertScript("fade_clear_starter");
+        }));
+    auto action = queue(leader);
+    game.update(.1f);
+    EXPECT_TRUE(action->isCancelled());
+    EXPECT_EQ(1, conversation->entries);
+    EXPECT_TRUE(game.isConversationActive());
+    EXPECT_TRUE(game.globalFade().dialogPending());
+    conversation->chooseReply();
+    EXPECT_FALSE(game.isConversationActive());
+    EXPECT_NE(Game::Screen::Conversation, game.currentScreen());
+    EXPECT_FALSE(leader->isInConversation());
+}
+
 TEST_P(GlobalFadeAdmission, area_retirement_discards_admission_without_waiting_for_storage) {
     auto &game = fixture->game;
     auto action = queue(leader);
