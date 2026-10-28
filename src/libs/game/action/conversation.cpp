@@ -184,6 +184,13 @@ void StartConversationAction::admit() {
 }
 
 bool StartConversationAction::cancel(std::shared_ptr<Action> self, Object &actor) {
+    // A request that no longer holds its admission has none to drop: it was
+    // refused, handed on, or the conversation it started owns it now. An
+    // entry script that clears the starter's actions runs while this action
+    // is still executing, and must not end that conversation.
+    if (!_fadeDialog) {
+        return true;
+    }
     // A dropped or failed request ends the conversation being under way.
     _game.setDialogUnderWay(false);
     _game.globalFade().finishDialog(_fadeDialog);
@@ -318,9 +325,11 @@ void StartConversationAction::execute(std::shared_ptr<Action> self, Object &acto
     }
 
     const auto listener = dialogOwner == actorPtr ? _objectToConverse : actorPtr;
+    // The conversation owns the admission from here on, while its first
+    // entry's scripts run too (see cancel).
+    auto admission = std::move(_fadeDialog);
     _game.startDialog(dialogOwner, _dialogResRef.empty() ? dialogOwner->conversation() : _dialogResRef,
-                      _fadeDialog, listener);
-    _fadeDialog.reset(); // successful startup is now owned by Conversation
+                      admission, listener);
     complete();
 }
 
