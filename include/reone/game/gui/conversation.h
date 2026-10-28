@@ -55,6 +55,9 @@ public:
                const std::shared_ptr<Object> &listener = nullptr);
     void cleanupForModuleTransition();
 
+    /** True from start() until the conversation has finished or been cleaned up. */
+    bool isRunning() const { return _dialog && _fadeDialog; }
+
     CameraType getCamera(int &cameraId) const;
 
     void pause();
